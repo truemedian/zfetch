@@ -1,0 +1,23 @@
+hzzp:
+  root: /src/main.zig
+  src:
+    github:
+      repo: hzzp
+      user: truemedian
+      ref: master
+
+iguanatls:
+  root: /src/main.zig
+  src:
+    github:
+      repo: iguanaTLS
+      user: alexnask
+      ref: master
+
+network:
+  root: /network.zig
+  src:
+    github:
+      repo: zig-network
+      user: MasterQ32
+      ref: master

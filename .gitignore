@@ -1,0 +1,7 @@
+
+# Zig Cache
+zig-cache/
+
+# Dependencies
+zig-deps/
+deps.zig
