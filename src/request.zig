@@ -250,6 +250,11 @@ test "" {
     std.testing.expectEqualStrings("text/html", req.headers.get("content-type").?);
     std.testing.expectEqualStrings("cloudflare", req.headers.get("server").?);
     std.testing.expectEqualStrings("close", req.headers.get("connection").?);
+
+    var buf: [34]u8 = undefined;
+    _ = try req.reader().read(&buf);
+
+    std.testing.expectEqualStrings("<!DOCTYPE html><html lang=\"en-US\">", &buf);
 }
 
 comptime {
