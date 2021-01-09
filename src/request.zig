@@ -168,12 +168,16 @@ pub const Request = struct {
             try self.client.writeHeaderFormat("Authorization", "Basic {s}", .{auth});
         }
 
+        if (!headers.contains("Connection")) {
+            try self.client.writeHeaderValue("Connection", "close");
+        }
+
         if (!headers.contains("User-Agent")) {
             try self.client.writeHeaderValue("User-Agent", "zfetch");
         }
 
-        if (!headers.contains("Connection")) {
-            try self.client.writeHeaderValue("Connection", "close");
+        if (payload != null and !headers.contains("Content-Length") and !headers.contains("Transfer-Encoding")) {
+            try self.client.writeHeaderFormat("Content-Length", "{d}", .{payload.?.len});
         }
 
         try self.client.writeHeaders(headers.list.items);
@@ -220,8 +224,7 @@ test "" {
     var req = try Request.init(std.testing.allocator, "https://discord.com/");
     defer req.deinit();
 
-    try req.commit(.GET, headers, null);
-    try req.fulfill();
+    try req.do(.GET, headers, null);
 
     std.testing.expect(req.status.code == 200);
     std.testing.expectEqualStrings("OK", req.status.reason);
