@@ -155,12 +155,12 @@ pub const Request = struct {
             var unencoded = try fmt.allocPrint(self.allocator, "{s}:{s}", .{ self.uri.user, self.uri.password });
             defer self.allocator.free(unencoded);
 
-            var auth = try self.allocator.alloc(u8, std.base64.standard_encoder.calcSize(unencoded.len));
+            var auth = try self.allocator.alloc(u8, std.base64.Base64Encoder.calcSize(unencoded.len));
             defer self.allocator.free(auth);
 
-            std.base64.standard_encoder.encode(auth, unencoded);
+            _ = std.base64.standard_encoder.encode(auth, unencoded);
 
-            try self.client.writeHeaderValueFormat("Authorization", "Basic {s}", .{auth});
+            try self.client.writeHeaderFormat("Authorization", "Basic {s}", .{auth});
         }
 
         if (!headers.contains("User-Agent")) {
