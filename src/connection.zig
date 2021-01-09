@@ -8,7 +8,7 @@ const network = @import("network");
 const SocketReader = network.Socket.Reader;
 const SocketWriter = network.Socket.Writer;
 
-const SecureContext = tls.Client(SocketReader, SocketWriter);
+const SecureContext = tls.Client(SocketReader, SocketWriter, tls.ciphersuites.all, true);
 
 pub const Protocol = enum {
     http,
@@ -52,10 +52,12 @@ pub const Connection = struct {
             },
             .https => {
                 conn.context = try tls.client_connect(.{
-                    .rand = null,
                     .reader = conn.socket.reader(),
                     .writer = conn.socket.writer(),
                     .cert_verifier = .none,
+                    .temp_allocator = allocator,
+                    .ciphersuites = tls.ciphersuites.all,
+                    .protocols = &[_][]const u8{"http/1.1"},
                 }, hostname);
             },
         }

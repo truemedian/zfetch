@@ -14,3 +14,8 @@ dependencies:
     path: https://github.com/MasterQ32/zig-network
     name: network
     main: network.zig
+
+  - type: git
+    path: https://github.com/MasterQ32/zig-uri
+    name: uri
+    main: uri.zig

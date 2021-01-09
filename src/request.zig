@@ -1,9 +1,13 @@
 const std = @import("std");
 
+const ascii = std.ascii;
 const mem = std.mem;
+const fmt = std.fmt;
 
 const hzzp = @import("hzzp");
-const conn = @import("conn.zig");
+const zuri = @import("uri");
+
+const conn = @import("connection.zig");
 
 const Protocol = conn.Protocol;
 const Connection = conn.Connection;
@@ -34,68 +38,6 @@ pub const Method = enum {
     }
 };
 
-pub const PartialUri = struct {
-    href: []const u8 = undefined,
-    scheme: []const u8 = undefined,
-    hostname: []const u8 = undefined,
-    port: ?[]const u8 = null,
-    path: []const u8 = "/",
-
-    pub fn parse(input: []const u8) !PartialUri {
-        var len: usize = 0;
-        var uri = PartialUri{};
-
-        uri.href = input;
-
-        for (input) |char, i| {
-            switch (char) {
-                'a'...'z' => {},
-                ':' => {
-                    uri.scheme = input[0..i];
-                    len = i;
-                    break;
-                },
-                else => return error.InvalidScheme,
-            }
-        }
-
-        if (input.len < len + 2 or input[len + 1] != '/' or input[len + 2] != '/') return error.InvalidUrl;
-        len += 3;
-
-        for (input[len..]) |char, i| {
-            switch (char) {
-                ':' => {
-                    uri.hostname = input[len .. len + i];
-                    len += i;
-                    break;
-                },
-                '/' => {
-                    uri.hostname = input[len .. len + i];
-                    uri.path = input[len + i ..];
-                    return uri;
-                },
-                else => {},
-            }
-        }
-
-        len += 1;
-
-        for (input[len..]) |char, i| {
-            switch (char) {
-                '/' => {
-                    uri.port = input[len .. len + i];
-                    uri.path = input[len + i ..];
-                    return uri;
-                },
-                else => {},
-            }
-        }
-
-        uri.hostname = input[len - 1 ..];
-        return uri;
-    }
-};
-
 const root = @import("root");
 pub const use_buffered_io: bool = if (@hasDecl(root, "zfetch_use_buffered_io"))
     root.zfetch_use_buffered_io
@@ -118,9 +60,11 @@ pub const Request = struct {
 
     allocator: *mem.Allocator,
     socket: *Connection,
-    uri: PartialUri,
 
-    buffer: [mem.page_size]u8 = undefined,
+    url: []const u8,
+    uri: zuri.UriComponents,
+
+    buffer: []u8 = undefined,
     client: HttpClient,
 
     status: Status,
@@ -131,41 +75,43 @@ pub const Request = struct {
 
     // assumes scheme://hostname[:port]/ url
     pub fn init(allocator: *mem.Allocator, url: []const u8) !*Request {
-        var url_safe = try allocator.dupe(u8, url);
-        var uri = try PartialUri.parse(url_safe);
+        const url_safe = try allocator.dupe(u8, url);
+        const uri = try zuri.parse(url_safe);
 
         const protocol: Protocol = proto: {
-            if (mem.eql(u8, uri.scheme, "http")) {
-                break :proto .http;
-            } else if (mem.eql(u8, uri.scheme, "https")) {
-                break :proto .https;
+            if (uri.scheme) |scheme| {
+                if (mem.eql(u8, scheme, "http")) {
+                    break :proto .http;
+                } else if (mem.eql(u8, scheme, "https")) {
+                    break :proto .https;
+                } else {
+                    return error.InvalidScheme;
+                }
             } else {
-                return error.InvalidScheme;
+                return error.MissingScheme;
             }
-        };
-
-        const port = port: {
-            if (uri.port) |p| {
-                break :port try std.fmt.parseUnsigned(u16, p, 10);
-            }
-
-            break :port null;
         };
 
         var req = try allocator.create(Request);
         errdefer allocator.destroy(req);
 
+        if (uri.host == null) return error.MissingHost;
+
         req.allocator = allocator;
-        req.socket = try Connection.connect(allocator, uri.hostname, port, protocol);
+        req.socket = try Connection.connect(allocator, uri.host.?, uri.port, protocol);
+
+        req.buffer = try allocator.alloc(u8, mem.page_size);
+
+        req.url = url_safe;
         req.uri = uri;
 
         if (comptime use_buffered_io) {
             req.buffered_reader = BufferedReader{ .unbuffered_reader = req.socket.reader() };
             req.buffered_writer = BufferedWriter{ .unbuffered_writer = req.socket.writer() };
-            
-            req.client = HttpClient.init(&req.buffer, req.buffered_reader.reader(), req.buffered_writer.writer());
+
+            req.client = HttpClient.init(req.buffer, req.buffered_reader.reader(), req.buffered_writer.writer());
         } else {
-            req.client = HttpClient.init(&req.buffer, req.socket.reader(), req.socket.writer());
+            req.client = HttpClient.init(req.buffer, req.socket.reader(), req.socket.writer());
         }
 
         req.headers = hzzp.Headers.init(allocator);
@@ -181,7 +127,10 @@ pub const Request = struct {
         self.socket.close();
         self.headers.deinit();
 
-        self.allocator.free(self.uri.href);
+        self.uri = undefined;
+
+        self.allocator.free(self.url);
+        self.allocator.free(self.buffer);
         self.allocator.free(self.status.reason);
 
         self.allocator.destroy(self);
@@ -191,7 +140,20 @@ pub const Request = struct {
         if (method.hasPayload() == .yes and payload == null) return error.MissingPayload;
         if (method.hasPayload() == .no and payload != null) return error.MustOmitPayload;
 
-        try self.client.writeStatusLine(method.name(), self.uri.path);
+        try self.client.writeStatusLineParts(method.name(), self.uri.path orelse "/", self.uri.query, self.uri.fragment);
+
+        if (!headers.contains("Host")) {
+            try self.client.writeHeaderValue("Host", self.uri.host.?);
+        }
+
+        if (!headers.contains("User-Agent")) {
+            try self.client.writeHeaderValue("User-Agent", "zfetch");
+        }
+
+        if (!headers.contains("Connection")) {
+            try self.client.writeHeaderValue("Connection", "close");
+        }
+
         try self.client.writeHeaders(headers.list.items);
         try self.client.finishHeaders();
         try self.client.writePayload(payload);
@@ -229,20 +191,14 @@ pub const Request = struct {
 test "" {
     try conn.init();
     defer conn.deinit();
-    
-    var timer = std.time.Timer.start() catch unreachable;
 
     var headers = hzzp.Headers.init(std.testing.allocator);
     defer headers.deinit();
 
-    try headers.set("Host", "discord.com");
-    try headers.set("Connection", "close");
-
     var req = try Request.init(std.testing.allocator, "https://discord.com/");
     defer req.deinit();
-    
-    try req.commit(.GET, headers, null);
 
+    try req.commit(.GET, headers, null);
     try req.fulfill();
 
     std.testing.expect(req.status.code == 200);

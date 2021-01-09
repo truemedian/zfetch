@@ -21,3 +21,11 @@ network:
       repo: zig-network
       user: MasterQ32
       ref: master
+
+uri:
+  root: /uri.zig
+  src:
+    github:
+      repo: zig-uri
+      user: MasterQ32
+      ref: master
