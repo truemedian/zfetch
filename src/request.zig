@@ -136,6 +136,11 @@ pub const Request = struct {
         self.allocator.destroy(self);
     }
 
+    pub fn do(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
+        try self.commit(method, headers, payload);
+        try self.fulfill();
+    }
+
     pub fn commit(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
         if (method.hasPayload() == .yes and payload == null) return error.MissingPayload;
         if (method.hasPayload() == .no and payload != null) return error.MustOmitPayload;
