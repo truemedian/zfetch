@@ -146,6 +146,23 @@ pub const Request = struct {
             try self.client.writeHeaderValue("Host", self.uri.host.?);
         }
 
+        if (self.uri.user != null or self.uri.password != null) {
+            if (self.uri.user == null) return error.MissingUsername;
+            if (self.uri.password == null) return error.MissingPassword;
+
+            if (headers.contains("Authorization")) return error.AuthorizationMismatch;
+
+            var unencoded = try fmt.allocPrint(self.allocator, "{s}:{s}", .{ self.uri.user, self.uri.password });
+            defer self.allocator.free(unencoded);
+
+            var auth = try self.allocator.alloc(u8, std.base64.standard_encoder.calcSize(unencoded.len));
+            defer self.allocator.free(auth);
+
+            std.base64.standard_encoder.encode(auth, unencoded);
+
+            try self.client.writeHeaderValueFormat("Authorization", "Basic {s}", .{auth});
+        }
+
         if (!headers.contains("User-Agent")) {
             try self.client.writeHeaderValue("User-Agent", "zfetch");
         }
