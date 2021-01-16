@@ -136,18 +136,18 @@ pub const Request = struct {
         self.allocator.destroy(self);
     }
 
-    pub fn do(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
+    pub fn do(self: *Request, method: Method, headers: ?hzzp.Headers, payload: ?[]const u8) !void {
         try self.commit(method, headers, payload);
         try self.fulfill();
     }
 
-    pub fn commit(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
+    pub fn commit(self: *Request, method: Method, headers: ?hzzp.Headers, payload: ?[]const u8) !void {
         if (method.hasPayload() == .yes and payload == null) return error.MissingPayload;
         if (method.hasPayload() == .no and payload != null) return error.MustOmitPayload;
 
         try self.client.writeStatusLineParts(method.name(), self.uri.path orelse "/", self.uri.query, self.uri.fragment);
 
-        if (!headers.contains("Host")) {
+        if (headers == null or !headers.?.contains("Host")) {
             try self.client.writeHeaderValue("Host", self.uri.host.?);
         }
 
@@ -155,7 +155,7 @@ pub const Request = struct {
             if (self.uri.user == null) return error.MissingUsername;
             if (self.uri.password == null) return error.MissingPassword;
 
-            if (headers.contains("Authorization")) return error.AuthorizationMismatch;
+            if (headers != null and headers.?.contains("Authorization")) return error.AuthorizationMismatch;
 
             var unencoded = try fmt.allocPrint(self.allocator, "{s}:{s}", .{ self.uri.user, self.uri.password });
             defer self.allocator.free(unencoded);
@@ -168,19 +168,22 @@ pub const Request = struct {
             try self.client.writeHeaderFormat("Authorization", "Basic {s}", .{auth});
         }
 
-        if (!headers.contains("Connection")) {
+        if (headers == null or !headers.?.contains("Connection")) {
             try self.client.writeHeaderValue("Connection", "close");
         }
 
-        if (!headers.contains("User-Agent")) {
+        if (headers == null or !headers.?.contains("User-Agent")) {
             try self.client.writeHeaderValue("User-Agent", "zfetch");
         }
 
-        if (payload != null and !headers.contains("Content-Length") and !headers.contains("Transfer-Encoding")) {
+        if (payload != null and (headers == null or !headers.?.contains("Content-Length") and !headers.?.contains("Transfer-Encoding"))) {
             try self.client.writeHeaderFormat("Content-Length", "{d}", .{payload.?.len});
         }
 
-        try self.client.writeHeaders(headers.list.items);
+        if (headers) |hdrs| {
+            try self.client.writeHeaders(hdrs.list.items);
+        }
+
         try self.client.finishHeaders();
         try self.client.writePayload(payload);
 
@@ -218,24 +221,40 @@ test "" {
     try conn.init();
     defer conn.deinit();
 
-    var headers = hzzp.Headers.init(std.testing.allocator);
-    defer headers.deinit();
-
-    var req = try Request.init(std.testing.allocator, "https://discord.com/");
+    var req = try Request.init(std.testing.allocator, "https://httpbin.org/get");
     defer req.deinit();
 
-    try req.do(.GET, headers, null);
+    try req.do(.GET, null, null);
 
     std.testing.expect(req.status.code == 200);
     std.testing.expectEqualStrings("OK", req.status.reason);
-    std.testing.expectEqualStrings("text/html", req.headers.get("content-type").?);
-    std.testing.expectEqualStrings("cloudflare", req.headers.get("server").?);
-    std.testing.expectEqualStrings("close", req.headers.get("connection").?);
+    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 
-    var buf: [34]u8 = undefined;
-    _ = try req.reader().read(&buf);
+    var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
+    defer std.testing.allocator.free(body);
 
-    std.testing.expectEqualStrings("<!DOCTYPE html><html lang=\"en-US\">", &buf);
+    var json = std.json.Parser.init(std.testing.allocator, false);
+    defer json.deinit();
+
+    var tree = try json.parse(body);
+    defer tree.deinit();
+
+    std.testing.expectEqualStrings("https://httpbin.org/get", tree.root.Object.get("url").?.String);
+    std.testing.expectEqualStrings("zfetch", tree.root.Object.get("headers").?.Object.get("User-Agent").?.String);
+}
+
+test "does basic auth" {
+    try conn.init();
+    defer conn.deinit();
+
+    var req = try Request.init(std.testing.allocator, "https://username:password@httpbin.org/basic-auth/username/password");
+    defer req.deinit();
+
+    try req.do(.GET, null, null);
+
+    std.testing.expect(req.status.code == 200);
+    std.testing.expectEqualStrings("OK", req.status.reason);
+    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 }
 
 comptime {
