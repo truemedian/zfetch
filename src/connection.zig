@@ -10,6 +10,8 @@ const SocketWriter = network.Socket.Writer;
 
 const SecureContext = tls.Client(SocketReader, SocketWriter, tls.ciphersuites.all, true);
 
+/// The protocol which a connection should use. This dictates the default port and whether or not a TLS connection
+/// should be established.
 pub const Protocol = enum {
     http,
     https,
@@ -25,15 +27,26 @@ pub const Protocol = enum {
 pub const init = network.init;
 pub const deinit = network.deinit;
 
+/// A wrapper around TCP + TLS and raw TCP streams that provides a connection agnostic interface.
 pub const Connection = struct {
     allocator: *mem.Allocator,
-    hostname: []const u8,
-    protocol: Protocol,
-    port: ?u16,
 
+    /// The hostname that this connection was initiated with.
+    hostname: []const u8,
+    
+    /// The protocol that this connection was initiated with.
+    protocol: Protocol,
+
+    /// The port that this connection was initiated with.
+    port: u16,
+
+    /// The underlying network socket.
     socket: network.Socket,
+    
+    /// The TLS context if the connection is using TLS.
     context: SecureContext,
 
+    /// Form a connection to the requested hostname and port.
     pub fn connect(allocator: *mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol) !*Connection {
         var conn = try allocator.create(Connection);
         errdefer allocator.destroy(conn);
@@ -65,6 +78,7 @@ pub const Connection = struct {
         return conn;
     }
 
+    /// Close this connection.
     pub fn close(self: *Connection) void {
         if (self.protocol == .https) {
             self.context.close_notify() catch {};

@@ -12,7 +12,7 @@ const conn = @import("connection.zig");
 const Protocol = conn.Protocol;
 const Connection = conn.Connection;
 
-// RFC 7231 and RFC 5789
+/// All RFC 7231 and RFC 5789 HTTP methods.
 pub const Method = enum {
     GET,
     HEAD,
@@ -54,26 +54,38 @@ else
 
 pub const Request = struct {
     pub const Status = struct {
+        /// The response code
         code: u16,
+
+        /// The reason for this response code, may be non-standard.
         reason: []const u8,
     };
 
     allocator: *mem.Allocator,
+
+    /// The connection that this request is using.
     socket: *Connection,
 
+    /// A duplicate of the url provided when initialized.
     url: []const u8,
+
+    /// The components of the url provided when initialized.
     uri: zuri.UriComponents,
 
     buffer: []u8 = undefined,
     client: HttpClient,
 
+    /// The response status.
     status: Status,
+
+    /// The response headers.
     headers: hzzp.Headers,
 
     buffered_reader: if (use_buffered_io) BufferedReader else void,
     buffered_writer: if (use_buffered_io) BufferedWriter else void,
 
     // assumes scheme://hostname[:port]/ url
+    /// Start a new request to the specified url. This will open a connection to the server.
     pub fn init(allocator: *mem.Allocator, url: []const u8) !*Request {
         const url_safe = try allocator.dupe(u8, url);
         const uri = try zuri.parse(url_safe);
@@ -123,6 +135,7 @@ pub const Request = struct {
         return req;
     }
 
+    /// End this request. Closes the connection and frees all data.
     pub fn deinit(self: *Request) void {
         self.socket.close();
         self.headers.deinit();
@@ -136,11 +149,16 @@ pub const Request = struct {
         self.allocator.destroy(self);
     }
 
+    /// See `commit` and `fulfill`
     pub fn do(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
         try self.commit(method, headers, payload);
         try self.fulfill();
     }
 
+    /// Performs the initial request. This verifies whether the method you are using requires or disallows a payload.
+    /// Default headers such as Host, Authorization (when using basic authentication), Connection, User-Agent, and
+    /// Content-Length are provided automatically, therefore headers is nullable. This only writes information to allow
+    /// for greater compatibility for change in the future.
     pub fn commit(self: *Request, method: Method, headers: hzzp.Headers, payload: ?[]const u8) !void {
         if (method.hasPayload() == .yes and payload == null) return error.MissingPayload;
         if (method.hasPayload() == .no and payload != null) return error.MustOmitPayload;
@@ -189,6 +207,8 @@ pub const Request = struct {
         }
     }
 
+    /// Waits for the head of the response to be returned. This is not safe for malicious servers, which may stall
+    /// forever.
     pub fn fulfill(self: *Request) !void {
         while (try self.client.next()) |event| {
             switch (event) {
@@ -209,12 +229,14 @@ pub const Request = struct {
     }
 
     pub const Reader = HttpClient.PayloadReader;
+
+    /// A reader for the response payload. This should only be called after the request is fulfilled.
     pub fn reader(self: *Request) Reader {
         return self.client.reader();
     }
 };
 
-test "" {
+test "makes request" {
     try conn.init();
     defer conn.deinit();
 
