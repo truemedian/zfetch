@@ -13,6 +13,9 @@ pub const Method = request.Method;
 pub const Connection = connection.Connection;
 pub const Protocol = connection.Protocol;
 
+pub const init = connection.init;
+pub const deinit = connection.deinit;
+
 comptime {
     std.testing.refAllDecls(@This());
 }
