@@ -6,6 +6,7 @@ const fmt = std.fmt;
 
 const hzzp = @import("hzzp");
 const zuri = @import("uri");
+const tls = @import("iguanatls");
 
 const conn = @import("connection.zig");
 
@@ -38,19 +39,7 @@ pub const Method = enum {
     }
 };
 
-const root = @import("root");
-pub const use_buffered_io: bool = if (@hasDecl(root, "zfetch_use_buffered_io"))
-    root.zfetch_use_buffered_io
-else
-    true;
-
-const BufferedReader = std.io.BufferedReader(4096, Connection.Reader);
-const BufferedWriter = std.io.BufferedWriter(4096, Connection.Writer);
-
-const HttpClient = if (use_buffered_io)
-    hzzp.base.client.BaseClient(BufferedReader.Reader, BufferedWriter.Writer)
-else
-    hzzp.base.client.BaseClient(Connection.Reader, Connection.Writer);
+const HttpClient = hzzp.base.client.BaseClient(Connection.Reader, Connection.Writer);
 
 pub const Request = struct {
     pub const Status = struct {
@@ -64,7 +53,7 @@ pub const Request = struct {
     allocator: *mem.Allocator,
 
     /// The connection that this request is using.
-    socket: *Connection,
+    socket: Connection,
 
     /// A duplicate of the url provided when initialized.
     url: []const u8,
@@ -81,12 +70,9 @@ pub const Request = struct {
     /// The response headers.
     headers: hzzp.Headers,
 
-    buffered_reader: if (use_buffered_io) BufferedReader else void,
-    buffered_writer: if (use_buffered_io) BufferedWriter else void,
-
     // assumes scheme://hostname[:port]/ url
     /// Start a new request to the specified url. This will open a connection to the server.
-    pub fn init(allocator: *mem.Allocator, url: []const u8) !*Request {
+    pub fn init(allocator: *mem.Allocator, url: []const u8, trust: ?tls.x509.TrustAnchorChain) !*Request {
         const url_safe = try allocator.dupe(u8, url);
         const uri = try zuri.parse(url_safe);
 
@@ -110,21 +96,14 @@ pub const Request = struct {
         if (uri.host == null) return error.MissingHost;
 
         req.allocator = allocator;
-        req.socket = try Connection.connect(allocator, uri.host.?, uri.port, protocol);
+        req.socket = try Connection.connect(allocator, uri.host.?, uri.port, protocol, trust);
 
         req.buffer = try allocator.alloc(u8, mem.page_size);
 
         req.url = url_safe;
         req.uri = uri;
 
-        if (comptime use_buffered_io) {
-            req.buffered_reader = BufferedReader{ .unbuffered_reader = req.socket.reader() };
-            req.buffered_writer = BufferedWriter{ .unbuffered_writer = req.socket.writer() };
-
-            req.client = HttpClient.init(req.buffer, req.buffered_reader.reader(), req.buffered_writer.writer());
-        } else {
-            req.client = HttpClient.init(req.buffer, req.socket.reader(), req.socket.writer());
-        }
+        req.client = HttpClient.init(req.buffer, req.socket.reader(), req.socket.writer());
 
         req.headers = hzzp.Headers.init(allocator);
         req.status = Status{
@@ -204,10 +183,6 @@ pub const Request = struct {
 
         try self.client.finishHeaders();
         try self.client.writePayload(payload);
-
-        if (comptime use_buffered_io) {
-            try self.buffered_writer.flush();
-        }
     }
 
     /// Waits for the head of the response to be returned. This is not safe for malicious servers, which may stall
@@ -243,7 +218,7 @@ test "makes request" {
     try conn.init();
     defer conn.deinit();
 
-    var req = try Request.init(std.testing.allocator, "https://httpbin.org/get");
+    var req = try Request.init(std.testing.allocator, "https://httpbin.org/get", null);
     defer req.deinit();
 
     try req.do(.GET, null, null);
@@ -254,6 +229,8 @@ test "makes request" {
 
     var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body);
+
+    std.debug.print("{s}\n", .{body});
 
     var json = std.json.Parser.init(std.testing.allocator, false);
     defer json.deinit();
@@ -269,7 +246,7 @@ test "does basic auth" {
     try conn.init();
     defer conn.deinit();
 
-    var req = try Request.init(std.testing.allocator, "https://username:password@httpbin.org/basic-auth/username/password");
+    var req = try Request.init(std.testing.allocator, "https://username:password@httpbin.org/basic-auth/username/password", null);
     defer req.deinit();
 
     try req.do(.GET, null, null);
