@@ -76,7 +76,7 @@ pub const Connection = struct {
         }
 
         conn.socket = try network.connectToHost(self.allocator, self.hostname, self.port, .tcp);
-        
+
         if (self.protocol == .https) {
             try conn.setupTlsContext(self.trust_chain);
         }
