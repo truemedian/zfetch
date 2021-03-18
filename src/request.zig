@@ -72,9 +72,9 @@ pub const Request = struct {
 
     // assumes scheme://hostname[:port]/ url
     /// Start a new request to the specified url. This will open a connection to the server.
+    /// `url` must remain alive until the request is sent (see commit).
     pub fn init(allocator: *mem.Allocator, url: []const u8, trust: ?tls.x509.TrustAnchorChain) !*Request {
-        const url_safe = try allocator.dupe(u8, url);
-        const uri = try zuri.parse(url_safe);
+        const uri = try zuri.parse(url);
 
         const protocol: Protocol = proto: {
             if (uri.scheme) |scheme| {
@@ -100,7 +100,7 @@ pub const Request = struct {
 
         req.buffer = try allocator.alloc(u8, mem.page_size);
 
-        req.url = url_safe;
+        req.url = url;
         req.uri = uri;
 
         req.client = HttpClient.init(req.buffer, req.socket.reader(), req.socket.writer());
@@ -114,6 +114,43 @@ pub const Request = struct {
         return req;
     }
 
+    pub fn reset(self: *Request, url: []const u8) !void {
+        const uri = try zuri.parse(url);
+
+        const protocol: Protocol = proto: {
+            if (uri.scheme) |scheme| {
+                if (mem.eql(u8, scheme, "http")) {
+                    break :proto .http;
+                } else if (mem.eql(u8, scheme, "https")) {
+                    break :proto .https;
+                } else {
+                    return error.InvalidScheme;
+                }
+            } else {
+                return error.MissingScheme;
+            }
+        };
+
+        if (uri.host == null) return error.MissingHost;
+        if (protocol != self.socket.protocol) return error.ProtocolMismatch;
+        if (!mem.eql(u8, uri.host.?, self.socket.hostname)) return error.HostnameMismatch;
+        if ((uri.port orelse protocol.defaultPort()) != self.socket.port) return error.PortMismatch;
+
+        self.url = url;
+        self.uri = uri;
+
+        self.client.reset();
+
+        self.headers.deinit();
+        self.headers = hzzp.Headers.init(self.allocator);
+
+        self.allocator.free(self.status.reason);
+        self.status = Status{
+            .code = 0,
+            .reason = "",
+        };
+    }
+
     /// End this request. Closes the connection and frees all data.
     pub fn deinit(self: *Request) void {
         self.socket.close();
@@ -121,7 +158,6 @@ pub const Request = struct {
 
         self.uri = undefined;
 
-        self.allocator.free(self.url);
         self.allocator.free(self.buffer);
         self.allocator.free(self.status.reason);
 
@@ -230,8 +266,6 @@ test "makes request" {
     var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body);
 
-    std.debug.print("{s}\n", .{body});
-
     var json = std.json.Parser.init(std.testing.allocator, false);
     defer json.deinit();
 
@@ -254,6 +288,68 @@ test "does basic auth" {
     std.testing.expect(req.status.code == 200);
     std.testing.expectEqualStrings("OK", req.status.reason);
     std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+
+    var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
+    defer std.testing.allocator.free(body);
+
+    var json = std.json.Parser.init(std.testing.allocator, false);
+    defer json.deinit();
+
+    var tree = try json.parse(body);
+    defer tree.deinit();
+
+    std.testing.expect(tree.root.Object.get("authenticated").?.Bool == true);
+    std.testing.expectEqualStrings("username", tree.root.Object.get("user").?.String);
+}
+
+test "can reset and resend" {
+    try conn.init();
+    defer conn.deinit();
+
+    var headers = hzzp.Headers.init(std.testing.allocator);
+    defer headers.deinit();
+
+    try headers.appendValue("Connection", "keep-alive");
+
+    var req = try Request.init(std.testing.allocator, "https://httpbin.org/user-agent", null);
+    defer req.deinit();
+
+    try req.do(.GET, headers, null);
+
+    std.testing.expect(req.status.code == 200);
+    std.testing.expectEqualStrings("OK", req.status.reason);
+    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+
+    var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
+    defer std.testing.allocator.free(body);
+
+    var json = std.json.Parser.init(std.testing.allocator, false);
+    defer json.deinit();
+
+    var tree = try json.parse(body);
+    defer tree.deinit();
+
+    std.testing.expectEqualStrings("zfetch", tree.root.Object.get("user-agent").?.String);
+
+    try req.reset("https://httpbin.org/get");
+
+    try req.do(.GET, null, null);
+
+    std.testing.expect(req.status.code == 200);
+    std.testing.expectEqualStrings("OK", req.status.reason);
+    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+
+    var body1 = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
+    defer std.testing.allocator.free(body1);
+
+    var json1 = std.json.Parser.init(std.testing.allocator, false);
+    defer json1.deinit();
+
+    var tree1 = try json1.parse(body1);
+    defer tree1.deinit();
+
+    std.testing.expectEqualStrings("https://httpbin.org/get", tree1.root.Object.get("url").?.String);
+    std.testing.expectEqualStrings("zfetch", tree1.root.Object.get("headers").?.Object.get("User-Agent").?.String);
 }
 
 comptime {
