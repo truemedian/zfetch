@@ -39,7 +39,10 @@ pub const Method = enum {
     }
 };
 
-const HttpClient = hzzp.base.client.BaseClient(Connection.Reader, Connection.Writer);
+const BufferedReader = std.io.BufferedReader(4096, Connection.Reader);
+const BufferedWriter = std.io.BufferedWriter(4096, Connection.Writer);
+
+const HttpClient = hzzp.base.client.BaseClient(BufferedReader.Reader, BufferedWriter.Writer);
 
 pub const Request = struct {
     pub const Status = struct {
@@ -70,6 +73,9 @@ pub const Request = struct {
     /// The response headers.
     headers: hzzp.Headers,
 
+    buffered_reader: *BufferedReader,
+    buffered_writer: *BufferedWriter,
+
     // assumes scheme://hostname[:port]/ url
     /// Start a new request to the specified url. This will open a connection to the server.
     /// `url` must remain alive until the request is sent (see commit).
@@ -97,13 +103,23 @@ pub const Request = struct {
 
         req.allocator = allocator;
         req.socket = try Connection.connect(allocator, uri.host.?, uri.port, protocol, trust);
+        errdefer req.socket.close();
 
         req.buffer = try allocator.alloc(u8, mem.page_size);
+        errdefer allocator.free(req.buffer);
 
         req.url = url;
         req.uri = uri;
 
-        req.client = HttpClient.init(req.buffer, req.socket.reader(), req.socket.writer());
+        req.buffered_reader = try allocator.create(BufferedReader);
+        errdefer allocator.destroy(req.buffered_reader);
+        req.buffered_reader.* = .{ .unbuffered_reader = req.socket.reader() };
+
+        req.buffered_writer = try allocator.create(BufferedWriter);
+        errdefer allocator.destroy(req.buffered_writer);
+        req.buffered_writer.* = .{ .unbuffered_writer = req.socket.writer() };
+
+        req.client = HttpClient.init(req.buffer, req.buffered_reader.reader(), req.buffered_writer.writer());
 
         req.headers = hzzp.Headers.init(allocator);
         req.status = Status{
@@ -160,6 +176,9 @@ pub const Request = struct {
 
         self.allocator.free(self.buffer);
         self.allocator.free(self.status.reason);
+
+        self.allocator.destroy(self.buffered_reader);
+        self.allocator.destroy(self.buffered_writer);
 
         self.allocator.destroy(self);
     }
@@ -219,6 +238,8 @@ pub const Request = struct {
 
         try self.client.finishHeaders();
         try self.client.writePayload(payload);
+
+        try self.buffered_writer.flush();
     }
 
     /// Waits for the head of the response to be returned. This is not safe for malicious servers, which may stall
