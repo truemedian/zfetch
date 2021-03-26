@@ -79,7 +79,7 @@ pub const Request = struct {
     // assumes scheme://hostname[:port]/ url
     /// Start a new request to the specified url. This will open a connection to the server.
     /// `url` must remain alive until the request is sent (see commit).
-    pub fn init(allocator: *mem.Allocator, url: []const u8, trust: ?tls.x509.TrustAnchorChain) !*Request {
+    pub fn init(allocator: *mem.Allocator, url: []const u8, trust: ?tls.x509.CertificateChain) !*Request {
         const uri = try zuri.parse(url);
 
         const protocol: Protocol = proto: {

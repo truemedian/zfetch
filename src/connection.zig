@@ -47,10 +47,10 @@ pub const Connection = struct {
     context: SecureContext = undefined,
 
     /// The TLS context's trust chain.
-    trust_chain: ?tls.x509.TrustAnchorChain = null,
+    trust_chain: ?tls.x509.CertificateChain = null,
 
     /// Form a connection to the requested hostname and port.
-    pub fn connect(allocator: *mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol, trust_chain: ?tls.x509.TrustAnchorChain) !Connection {
+    pub fn connect(allocator: *mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol, trust_chain: ?tls.x509.CertificateChain) !Connection {
         const host_dupe = try allocator.dupe(u8, hostname);
 
         var conn = Connection{
@@ -82,7 +82,7 @@ pub const Connection = struct {
         }
     }
 
-    fn setupTlsContext(self: *Connection, trust: ?tls.x509.TrustAnchorChain) !void {
+    fn setupTlsContext(self: *Connection, trust: ?tls.x509.CertificateChain) !void {
         switch (self.protocol) {
             .http => {
                 self.context = undefined;
