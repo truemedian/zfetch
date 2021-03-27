@@ -4,7 +4,7 @@ const Builder = std.build.Builder;
 
 const packages = @import("deps.zig");
 
-const examples = [_][]const u8{"get"};
+const examples = [_][]const u8{"get", "post"};
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
