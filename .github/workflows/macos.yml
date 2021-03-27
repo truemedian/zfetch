@@ -28,3 +28,11 @@ jobs:
 
       - name: Test
         run: gyro build test
+
+      - name: Example (Get)
+        working_directory: examples
+        run: gyro build get
+
+      - name: Example (Post)
+        working_directory: examples
+        run: gyro build get
