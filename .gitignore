@@ -3,6 +3,7 @@
 zig-cache/
 
 # Dependencies
-zig-deps/
 .zigmod/
+.gyro/
+
 deps.zig

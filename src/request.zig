@@ -6,7 +6,7 @@ const fmt = std.fmt;
 
 const hzzp = @import("hzzp");
 const zuri = @import("uri");
-const tls = @import("iguanatls");
+const tls = @import("iguanaTLS");
 
 const conn = @import("connection.zig");
 

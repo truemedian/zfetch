@@ -7,7 +7,7 @@ dependencies:
 
   - type: git
     path: https://github.com/alexnask/iguanaTLS
-    name: iguanatls
+    name: iguanaTLS
     main: src/main.zig
 
   - type: git

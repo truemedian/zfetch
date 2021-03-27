@@ -15,10 +15,8 @@ pub fn build(b: *Builder) void {
 
         if (@hasDecl(packages, "addAllTo")) { // zigmod
             packages.addAllTo(example);
-        } else { // zkg
-            inline for (std.meta.fields(@TypeOf(packages.pkgs))) |field| {
-                example.addPackage(@field(packages.pkgs, field.name));
-            }
+        } else if (@hasDecl(packages, "pkgs") and @hasDecl(packages.pkgs, "addAllTo")) { // gyro
+            packages.pkgs.addAllTo(example);
         }
 
         const example_run = example.run();

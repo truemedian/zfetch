@@ -12,10 +12,8 @@ pub fn build(b: *Builder) void {
 
     if (@hasDecl(packages, "addAllTo")) { // zigmod
         packages.addAllTo(lib_tests);
-    } else { // zkg
-        inline for (std.meta.fields(@TypeOf(packages.pkgs))) |field| {
-            lib_tests.addPackage(@field(packages.pkgs, field.name));
-        }
+    } else if (@hasDecl(packages, "pkgs") and @hasDecl(packages.pkgs, "addAllTo")) { // gyro
+        packages.pkgs.addAllTo(lib_tests);
     }
 
     const tests = b.step("test", "Run all library tests");

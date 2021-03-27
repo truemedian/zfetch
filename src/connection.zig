@@ -2,7 +2,7 @@ const std = @import("std");
 
 const mem = std.mem;
 
-const tls = @import("iguanatls");
+const tls = @import("iguanaTLS");
 const network = @import("network");
 
 const SocketReader = network.Socket.Reader;
