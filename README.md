@@ -1,8 +1,8 @@
 # zfetch
 
 [![Linux Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/Linux?label=Linux&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/linux.yml)
-[![Windows Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/Windows?label=Windows&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/macos.yml)
-[![MacOS Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/MacOS?label=MacOS&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/windows.yml)
+[![Windows Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/Windows?label=Windows&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/windows.yml)
+[![MacOS Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/MacOS?label=MacOS&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/macos.yml)
 
 A HTTP request library for Zig with HTTPS support.
 
