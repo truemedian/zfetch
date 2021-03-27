@@ -1,9 +1,10 @@
-
-# Zig Cache
 zig-cache/
 
-# Dependencies
-.zigmod/
-.gyro/
-
+# package dependencies
 deps.zig
+
+# zigmod
+.zigmod/
+
+# gyro
+.gyro/
