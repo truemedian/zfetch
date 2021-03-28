@@ -31,8 +31,8 @@ jobs:
 
       - name: Example (Get)
         working_directory: examples
-        run: gyro build get
+        run: gyro build get-run
 
       - name: Example (Post)
         working_directory: examples
-        run: gyro build get
+        run: gyro build post-run
