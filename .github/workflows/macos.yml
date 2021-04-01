@@ -30,9 +30,9 @@ jobs:
         run: gyro build test
 
       - name: Example (Get)
-        working_directory: examples
+        working-directory: examples
         run: gyro build get-run
 
       - name: Example (Post)
-        working_directory: examples
+        working-directory: examples
         run: gyro build post-run
