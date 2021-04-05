@@ -24,7 +24,7 @@ jobs:
           version: master
 
       - name: Setup Gyro
-        uses: mattnite/setup-gyro@v1.0.1
+        uses: mattnite/setup-gyro@v1
 
       - name: Test
         run: gyro build test
