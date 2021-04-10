@@ -45,14 +45,18 @@ const read_buffer_size = if (@hasDecl(root, "zfetch_read_buffer_size"))
 else if (@hasDecl(root, "zfetch_buffer_size"))
     root.zfetch_buffer_size
 else if (@hasDecl(root, "zfetch_large_buffer"))
-    if (root.zfetch_large_buffer) 32768 else 4096;
+    if (root.zfetch_large_buffer) 32768 else 4096
+else
+    4096;
 
 const write_buffer_size = if (@hasDecl(root, "zfetch_write_buffer_size"))
     root.zfetch_write_buffer_size
 else if (@hasDecl(root, "zfetch_buffer_size"))
     root.zfetch_buffer_size
 else if (@hasDecl(root, "zfetch_large_buffer"))
-    if (root.zfetch_large_buffer) 32768 else 4096;
+    if (root.zfetch_large_buffer) 32768 else 4096
+else
+    4096;
 
 const BufferedReader = std.io.BufferedReader(read_buffer_size, Connection.Reader);
 const BufferedWriter = std.io.BufferedWriter(write_buffer_size, Connection.Writer);
