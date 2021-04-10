@@ -3,6 +3,9 @@ const std = @import("std");
 const zfetch = @import("zfetch");
 
 pub fn main() !void {
+    try zfetch.init();
+    defer zfetch.deinit();
+    
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = &gpa.allocator;
     defer _ = gpa.deinit();

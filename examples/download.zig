@@ -2,7 +2,12 @@ const std = @import("std");
 
 const zfetch = @import("zfetch");
 
+// pub const zfetch_large_buffer = true;
+
 pub fn main() !void {
+    try zfetch.init();
+    defer zfetch.deinit();
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = &gpa.allocator;
     defer _ = gpa.deinit();
@@ -12,7 +17,7 @@ pub fn main() !void {
 
     try headers.appendValue("Accept", "application/json");
 
-    var req = try zfetch.Request.init(allocator, "https://www.damienelliott.com/wp-content/uploads/2020/07/1-Million-Digits-of-Pi-%CF%80.txt", null);
+    var req = try zfetch.Request.init(allocator, "https://speed.hetzner.de/100MB.bin", null);
     defer req.deinit();
 
     try req.do(.GET, headers, null);
@@ -27,11 +32,20 @@ pub fn main() !void {
 
     const reader = req.reader();
 
-    var buf: [16384]u8 = undefined;
+    var timer = std.time.Timer.start() catch unreachable;
+    var size: usize = 0;
+
+    var buf: [65535]u8 = undefined;
     while (true) {
         const read = try reader.read(&buf);
         if (read == 0) break;
 
+        std.debug.print("\r{} bytes", .{size});
+
+        size += read;
         try writer.writeAll(buf[0..read]);
     }
+
+    const took = timer.read();
+    std.log.info("\ndownloaded: {} bytes in {} seconds", .{ size, took / 1_000_000_000 });
 }
