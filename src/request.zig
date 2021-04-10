@@ -39,8 +39,23 @@ pub const Method = enum {
     }
 };
 
-const BufferedReader = std.io.BufferedReader(4096, Connection.Reader);
-const BufferedWriter = std.io.BufferedWriter(4096, Connection.Writer);
+const root = @import("root");
+const read_buffer_size = if (@hasDecl(root, "zfetch_read_buffer_size"))
+    root.zfetch_read_buffer_size
+else if (@hasDecl(root, "zfetch_buffer_size"))
+    root.zfetch_buffer_size
+else if (@hasDecl(root, "zfetch_large_buffer"))
+    if (root.zfetch_large_buffer) 32768 else 4096;
+
+const write_buffer_size = if (@hasDecl(root, "zfetch_write_buffer_size"))
+    root.zfetch_write_buffer_size
+else if (@hasDecl(root, "zfetch_buffer_size"))
+    root.zfetch_buffer_size
+else if (@hasDecl(root, "zfetch_large_buffer"))
+    if (root.zfetch_large_buffer) 32768 else 4096;
+
+const BufferedReader = std.io.BufferedReader(read_buffer_size, Connection.Reader);
+const BufferedWriter = std.io.BufferedWriter(write_buffer_size, Connection.Writer);
 
 const HttpClient = hzzp.base.client.BaseClient(BufferedReader.Reader, BufferedWriter.Writer);
 
