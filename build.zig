@@ -2,9 +2,9 @@ const std = @import("std");
 
 const Builder = std.build.Builder;
 
-const packages = @import("deps.zig");
-
 pub fn build(b: *Builder) void {
+    const packages = @import("deps.zig");
+
     const mode = b.standardReleaseOptions();
 
     const lib_tests = b.addTest("src/main.zig");
@@ -18,4 +18,34 @@ pub fn build(b: *Builder) void {
 
     const tests = b.step("test", "Run all library tests");
     tests.dependOn(&lib_tests.step);
+}
+
+pub fn getPackage(b: *Builder, comptime prefix: []const u8) std.build.Pkg {
+    var dependencies = b.allocator.alloc(std.build.Pkg, 4) catch unreachable;
+
+    dependencies[0] = .{
+        .name = "iguanaTLS",
+        .path = prefix ++ "/libs/iguanaTLS"
+    };
+    
+    dependencies[1] = .{
+        .name = "network",
+        .path = prefix ++ "/libs/network"
+    };
+    
+    dependencies[2] = .{
+        .name = "uri",
+        .path = prefix ++ "/libs/uri"
+    };
+    
+    dependencies[3] = .{
+        .name = "hzzp",
+        .path = prefix ++ "/libs/hzzp"
+    };
+
+    return .{
+        .name = "zfetch",
+        .path = prefix ++ "/src/main.zig",
+        .dependencies = dependencies,
+    };
 }
