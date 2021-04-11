@@ -2,11 +2,7 @@ name: Windows
 
 on:
   push:
-    paths:
-      - "**.zig"
   pull_request:
-    paths:
-      - "**.zig"
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
@@ -41,3 +37,7 @@ jobs:
       - name: Example (Post)
         working-directory: examples
         run: gyro build post-run
+
+      - name: Example (Download)
+        working-directory: examples
+        run: gyro build download-run

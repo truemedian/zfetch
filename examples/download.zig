@@ -15,7 +15,7 @@ pub fn main() !void {
 
     try headers.appendValue("Accept", "application/json");
 
-    var req = try zfetch.Request.init(allocator, "https://speed.hetzner.de/10GB.bin", null);
+    var req = try zfetch.Request.init(allocator, "https://speed.hetzner.de/100MB.bin", null);
     defer req.deinit();
 
     try req.do(.GET, headers, null);

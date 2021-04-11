@@ -4,7 +4,7 @@ const Builder = std.build.Builder;
 
 const examples = [_][]const u8{ "get", "post", "download" };
 
-const submodules = true;
+const submodules = false;
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
