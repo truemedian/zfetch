@@ -14,9 +14,54 @@ A HTTP request library for Zig with HTTPS support.
 ## Notes
 
 * Passing `null` as the `trust_chain` in Request.init will tell zfetch to **not check server certificates**. If you do
-  not trust your connection, please provide a iguanaTLS x509 trust chain.
+  not trust your connection, please provide a iguanaTLS x509 certificate chain.
 * zfetch only does rudimentary checks to ensure functions are called in the right order. These are nowhere near enough
   to prevent you from doing so, please call the functions in the order they are intended to be called in.
+
+## Adding zfetch as a package
+
+### Gyro
+
+```zzz
+# gyro.zzz
+
+...
+
+deps:
+  truemedian/zfetch: ^0.0.3
+
+...
+```
+
+### Zigmod
+
+```yaml
+# zig.mod
+
+...
+
+dependencies:
+  - type: git
+    path: https://github.com/truemedian/zfetch
+
+...
+```
+
+### Submodules
+
+> Assuming zfetch is **recursively** checked out at `libs/zfetch`
+
+```zig
+// build.zig
+
+const zfetch = @import("libs/zfetch/build.zig");
+
+...
+
+exe.addPackage(zfetch.getPackage(b, "libs/zfetch"));
+
+...
+```
 
 ## Examples
 
