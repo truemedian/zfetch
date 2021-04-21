@@ -8,3 +8,4 @@ deps.zig
 
 # gyro
 .gyro/
+gyro.lock
