@@ -52,6 +52,7 @@ pub const Connection = struct {
     /// Form a connection to the requested hostname and port.
     pub fn connect(allocator: *mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol, trust_chain: ?tls.x509.CertificateChain) !Connection {
         const host_dupe = try allocator.dupe(u8, hostname);
+        errdefer allocator.free(host_dupe);
 
         var conn = Connection{
             .allocator = allocator,
