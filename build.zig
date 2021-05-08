@@ -23,25 +23,10 @@ pub fn build(b: *Builder) void {
 pub fn getPackage(b: *Builder, comptime prefix: []const u8) std.build.Pkg {
     var dependencies = b.allocator.alloc(std.build.Pkg, 4) catch unreachable;
 
-    dependencies[0] = .{
-        .name = "iguanaTLS",
-        .path = prefix ++ "/libs/iguanaTLS"
-    };
-    
-    dependencies[1] = .{
-        .name = "network",
-        .path = prefix ++ "/libs/network"
-    };
-    
-    dependencies[2] = .{
-        .name = "uri",
-        .path = prefix ++ "/libs/uri"
-    };
-    
-    dependencies[3] = .{
-        .name = "hzzp",
-        .path = prefix ++ "/libs/hzzp"
-    };
+    dependencies[0] = .{ .name = "iguanaTLS", .path = prefix ++ "/libs/iguanaTLS" };
+    dependencies[1] = .{ .name = "network", .path = prefix ++ "/libs/network" };
+    dependencies[2] = .{ .name = "uri", .path = prefix ++ "/libs/uri" };
+    dependencies[3] = .{ .name = "hzzp", .path = prefix ++ "/libs/hzzp" };
 
     return .{
         .name = "zfetch",
