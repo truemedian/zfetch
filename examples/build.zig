@@ -2,16 +2,18 @@ const std = @import("std");
 
 const Builder = std.build.Builder;
 
-const examples = [_][]const u8{ "get", "post", "download" };
+const examples = [_][]const u8{ "get", "post", "download", "evented" };
 
 const submodules = false;
 
 pub fn build(b: *Builder) void {
+    const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
     inline for (examples) |name| {
         const example = b.addExecutable(name, name ++ ".zig");
         example.setBuildMode(mode);
+        example.setTarget(target);
         example.install();
 
         if (comptime submodules) {
@@ -39,25 +41,10 @@ pub fn build(b: *Builder) void {
 fn getPackage(b: *Builder, comptime prefix: []const u8) std.build.Pkg {
     var dependencies = b.allocator.alloc(std.build.Pkg, 4) catch unreachable;
 
-    dependencies[0] = .{
-        .name = "iguanaTLS",
-        .path = prefix ++ "/libs/iguanaTLS/src/main.zig"
-    };
-    
-    dependencies[1] = .{
-        .name = "network",
-        .path = prefix ++ "/libs/network/network.zig"
-    };
-    
-    dependencies[2] = .{
-        .name = "uri",
-        .path = prefix ++ "/libs/uri/uri.zig"
-    };
-    
-    dependencies[3] = .{
-        .name = "hzzp",
-        .path = prefix ++ "/libs/hzzp/src/main.zig"
-    };
+    dependencies[0] = .{ .name = "iguanaTLS", .path = prefix ++ "/libs/iguanaTLS/src/main.zig" };
+    dependencies[1] = .{ .name = "network", .path = prefix ++ "/libs/network/network.zig" };
+    dependencies[2] = .{ .name = "uri", .path = prefix ++ "/libs/uri/uri.zig" };
+    dependencies[3] = .{ .name = "hzzp", .path = prefix ++ "/libs/hzzp/src/main.zig" };
 
     return .{
         .name = "zfetch",

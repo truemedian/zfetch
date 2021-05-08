@@ -2,6 +2,8 @@ const std = @import("std");
 
 const zfetch = @import("zfetch");
 
+pub const io_mode = .evented;
+
 pub fn main() !void {
     try zfetch.init();
     defer zfetch.deinit();
