@@ -299,9 +299,9 @@ test "makes request" {
 
     try req.do(.GET, null, null);
 
-    std.testing.expect(req.status.code == 200);
-    std.testing.expectEqualStrings("OK", req.status.reason);
-    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+    try std.testing.expect(req.status.code == 200);
+    try std.testing.expectEqualStrings("OK", req.status.reason);
+    try std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 
     var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body);
@@ -312,8 +312,8 @@ test "makes request" {
     var tree = try json.parse(body);
     defer tree.deinit();
 
-    std.testing.expectEqualStrings("https://httpbin.org/get", tree.root.Object.get("url").?.String);
-    std.testing.expectEqualStrings("zfetch", tree.root.Object.get("headers").?.Object.get("User-Agent").?.String);
+    try std.testing.expectEqualStrings("https://httpbin.org/get", tree.root.Object.get("url").?.String);
+    try std.testing.expectEqualStrings("zfetch", tree.root.Object.get("headers").?.Object.get("User-Agent").?.String);
 }
 
 test "does basic auth" {
@@ -325,9 +325,9 @@ test "does basic auth" {
 
     try req.do(.GET, null, null);
 
-    std.testing.expect(req.status.code == 200);
-    std.testing.expectEqualStrings("OK", req.status.reason);
-    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+    try std.testing.expect(req.status.code == 200);
+    try std.testing.expectEqualStrings("OK", req.status.reason);
+    try std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 
     var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body);
@@ -338,8 +338,8 @@ test "does basic auth" {
     var tree = try json.parse(body);
     defer tree.deinit();
 
-    std.testing.expect(tree.root.Object.get("authenticated").?.Bool == true);
-    std.testing.expectEqualStrings("username", tree.root.Object.get("user").?.String);
+    try std.testing.expect(tree.root.Object.get("authenticated").?.Bool == true);
+    try std.testing.expectEqualStrings("username", tree.root.Object.get("user").?.String);
 }
 
 test "can reset and resend" {
@@ -356,9 +356,9 @@ test "can reset and resend" {
 
     try req.do(.GET, headers, null);
 
-    std.testing.expect(req.status.code == 200);
-    std.testing.expectEqualStrings("OK", req.status.reason);
-    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+    try std.testing.expect(req.status.code == 200);
+    try std.testing.expectEqualStrings("OK", req.status.reason);
+    try std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 
     var body = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body);
@@ -369,15 +369,15 @@ test "can reset and resend" {
     var tree = try json.parse(body);
     defer tree.deinit();
 
-    std.testing.expectEqualStrings("zfetch", tree.root.Object.get("user-agent").?.String);
+    try std.testing.expectEqualStrings("zfetch", tree.root.Object.get("user-agent").?.String);
 
     try req.reset("https://httpbin.org/get");
 
     try req.do(.GET, null, null);
 
-    std.testing.expect(req.status.code == 200);
-    std.testing.expectEqualStrings("OK", req.status.reason);
-    std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
+    try std.testing.expect(req.status.code == 200);
+    try std.testing.expectEqualStrings("OK", req.status.reason);
+    try std.testing.expectEqualStrings("application/json", req.headers.get("content-type").?);
 
     var body1 = try req.reader().readAllAlloc(std.testing.allocator, 4 * 1024);
     defer std.testing.allocator.free(body1);
@@ -388,8 +388,8 @@ test "can reset and resend" {
     var tree1 = try json1.parse(body1);
     defer tree1.deinit();
 
-    std.testing.expectEqualStrings("https://httpbin.org/get", tree1.root.Object.get("url").?.String);
-    std.testing.expectEqualStrings("zfetch", tree1.root.Object.get("headers").?.Object.get("User-Agent").?.String);
+    try std.testing.expectEqualStrings("https://httpbin.org/get", tree1.root.Object.get("url").?.String);
+    try std.testing.expectEqualStrings("zfetch", tree1.root.Object.get("headers").?.Object.get("User-Agent").?.String);
 }
 
 comptime {

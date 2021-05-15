@@ -160,7 +160,7 @@ test "can http?" {
     var buf = try conn.reader().readUntilDelimiterAlloc(std.testing.allocator, '\r', std.math.maxInt(usize));
     defer std.testing.allocator.free(buf);
 
-    std.testing.expectEqualStrings("HTTP/1.1 301 TLS Redirect", buf);
+    try std.testing.expectEqualStrings("HTTP/1.1 301 TLS Redirect", buf);
 }
 
 test "can https?" {
@@ -173,7 +173,7 @@ test "can https?" {
     var buf = try conn.reader().readUntilDelimiterAlloc(std.testing.allocator, '\r', std.math.maxInt(usize));
     defer std.testing.allocator.free(buf);
 
-    std.testing.expectEqualStrings("HTTP/1.1 301 Moved Permanently", buf);
+    try std.testing.expectEqualStrings("HTTP/1.1 301 Moved Permanently", buf);
 }
 
 comptime {
