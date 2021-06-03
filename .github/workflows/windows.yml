@@ -32,12 +32,12 @@ jobs:
 
       - name: Example (Get)
         working-directory: examples
-        run: gyro build get-run
+        run: gyro build run-get
 
       - name: Example (Post)
         working-directory: examples
-        run: gyro build post-run
+        run: gyro build run-post
 
       - name: Example (Download)
         working-directory: examples
-        run: gyro build download-run
+        run: gyro build run-download
