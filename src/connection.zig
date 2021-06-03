@@ -4,9 +4,13 @@ const mem = std.mem;
 
 const tls = @import("iguanaTLS");
 const network = @import("network");
+const root = @import("root");
 
-const SocketReader = network.Socket.Reader;
-const SocketWriter = network.Socket.Writer;
+const std_net_hack = if (@hasDecl(root, "zfetch_std_net_hack")) root.zfetch_std_net_hack else false;
+
+const Socket = if (std_net_hack) std.net.Stream else network.Socket;
+const SocketReader = Socket.Reader;
+const SocketWriter = Socket.Writer;
 
 const SecureContext = tls.Client(SocketReader, SocketWriter, tls.ciphersuites.all, true);
 
@@ -41,7 +45,7 @@ pub const Connection = struct {
     port: u16,
 
     /// The underlying network socket.
-    socket: network.Socket,
+    socket: Socket,
 
     /// The TLS context if the connection is using TLS.
     context: SecureContext = undefined,
@@ -54,12 +58,18 @@ pub const Connection = struct {
         const host_dupe = try allocator.dupe(u8, hostname);
         errdefer allocator.free(host_dupe);
 
+        const real_port = port orelse protocol.defaultPort();
+        const socket = if (comptime std_net_hack)
+            try std.net.tcpConnectToHost(allocator, host_dupe, real_port)
+        else
+            try network.connectToHost(allocator, host_dupe, real_port, .tcp);
+
         var conn = Connection{
             .allocator = allocator,
             .hostname = host_dupe,
             .protocol = protocol,
-            .port = port orelse protocol.defaultPort(),
-            .socket = try network.connectToHost(allocator, host_dupe, port orelse protocol.defaultPort(), .tcp),
+            .port = real_port,
+            .socket = socket,
             .trust_chain = trust_chain,
         };
         errdefer conn.socket.close();
@@ -76,7 +86,10 @@ pub const Connection = struct {
             self.context.close_notify() catch {};
         }
 
-        conn.socket = try network.connectToHost(self.allocator, self.hostname, self.port, .tcp);
+        conn.socket = if (comptime std_net_hack)
+            try std.net.tcpConnectToHost(self.allocator, self.host_dupe, self.port)
+        else
+            try network.connectToHost(self.allocator, self.host_dupe, self.port, .tcp);
 
         if (self.protocol == .https) {
             try conn.setupTlsContext(self.trust_chain);
@@ -127,7 +140,10 @@ pub const Connection = struct {
     pub const Reader = std.io.Reader(*Connection, ReadError, read);
     pub fn read(self: *Connection, buffer: []u8) ReadError!usize {
         return switch (self.protocol) {
-            .http => self.socket.receive(buffer),
+            .http => if (comptime std_net_hack)
+                self.socket.read(buffer)
+            else
+                self.socket.receive(buffer),
             .https => self.context.read(buffer),
         };
     }
@@ -140,7 +156,10 @@ pub const Connection = struct {
     pub const Writer = std.io.Writer(*Connection, WriteError, write);
     pub fn write(self: *Connection, buffer: []const u8) WriteError!usize {
         return switch (self.protocol) {
-            .http => self.socket.send(buffer),
+            .http => if (comptime std_net_hack)
+                self.socket.write(buffer)
+            else
+                self.socket.send(buffer),
             .https => self.context.write(buffer),
         };
     }
