@@ -3,6 +3,7 @@ const std = @import("std");
 const zfetch = @import("zfetch");
 
 pub const io_mode = .evented;
+pub const zfetch_std_net_hack = true;
 
 pub fn main() !void {
     try zfetch.init();

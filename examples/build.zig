@@ -30,7 +30,7 @@ pub fn build(b: *Builder) void {
         const example_step = b.step(name, "Build the " ++ name ++ " example");
         example_step.dependOn(&example.step);
 
-        const example_run_step = b.step(name ++ "-run", "Run the " ++ name ++ " example");
+        const example_run_step = b.step("run-" ++ name, "Run the " ++ name ++ " example");
 
         const example_run = example.run();
         example_run_step.dependOn(&example_run.step);
