@@ -28,7 +28,7 @@ A HTTP request library for Zig with HTTPS support.
 ...
 
 deps:
-  truemedian/zfetch: ^0.0.3
+  truemedian/zfetch: ^0.1.1
 
 ...
 ```
