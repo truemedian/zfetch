@@ -10,6 +10,7 @@ pub const Headers = hzzp.Headers;
 pub const Request = request.Request;
 pub const Method = request.Method;
 
+pub const Backend = connection.Backend;
 pub const Connection = connection.Connection;
 pub const Protocol = connection.Protocol;
 

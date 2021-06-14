@@ -6,11 +6,23 @@ const tls = @import("iguanaTLS");
 const network = @import("network");
 const root = @import("root");
 
-const std_net_hack = if (@hasDecl(root, "zfetch_std_net_hack")) root.zfetch_std_net_hack else false;
+pub const Backend = enum {
+    network,
+    std,
+    experimental,
+};
 
-const Socket = if (std_net_hack) std.net.Stream else network.Socket;
-const SocketReader = Socket.Reader;
-const SocketWriter = Socket.Writer;
+const backend: Backend = std.meta.globalOption("zfetch_backend", Backend) orelse .network;
+
+const Socket = switch (backend) {
+    .network => network.Socket,
+    .std => std.net.Stream,
+    .experimental => std.x.net.tcp.Client,
+};
+
+// std.x.net.tcp.Client's "Reader" decl is not a std.io.Reader.
+const SocketReader = @typeInfo(@TypeOf(Socket.reader)).Fn.return_type.?;
+const SocketWriter = @typeInfo(@TypeOf(Socket.writer)).Fn.return_type.?;
 
 const SecureContext = tls.Client(SocketReader, SocketWriter, tls.ciphersuites.all, true);
 
@@ -59,10 +71,11 @@ pub const Connection = struct {
         errdefer allocator.free(host_dupe);
 
         const real_port = port orelse protocol.defaultPort();
-        const socket = if (comptime std_net_hack)
-            try std.net.tcpConnectToHost(allocator, host_dupe, real_port)
-        else
-            try network.connectToHost(allocator, host_dupe, real_port, .tcp);
+        const socket = switch (backend) {
+            .network => try network.connectToHost(allocator, host_dupe, real_port, .tcp),
+            .std => try std.net.tcpConnectToHost(allocator, host_dupe, real_port),
+            .experimental => @compileError("backend not yet supported, std.x.net does not support hostname resolution, connect will not work"),
+        };
 
         var conn = Connection{
             .allocator = allocator,
@@ -86,10 +99,11 @@ pub const Connection = struct {
             self.context.close_notify() catch {};
         }
 
-        conn.socket = if (comptime std_net_hack)
-            try std.net.tcpConnectToHost(self.allocator, self.host_dupe, self.port)
-        else
-            try network.connectToHost(self.allocator, self.host_dupe, self.port, .tcp);
+        conn.socket = switch (backend) {
+            .network => try network.connectToHost(self.allocator, self.host_dupe, self.port, .tcp),
+            .std => try std.net.tcpConnectToHost(self.allocator, self.host_dupe, self.port),
+            .experimental => @compileError("backend not yet supported, std.x.net does not support hostname resolution"),
+        };
 
         if (self.protocol == .https) {
             try conn.setupTlsContext(self.trust_chain);
@@ -140,10 +154,11 @@ pub const Connection = struct {
     pub const Reader = std.io.Reader(*Connection, ReadError, read);
     pub fn read(self: *Connection, buffer: []u8) ReadError!usize {
         return switch (self.protocol) {
-            .http => if (comptime std_net_hack)
-                self.socket.read(buffer)
-            else
-                self.socket.receive(buffer),
+            .http => switch (backend) {
+                .network => self.socket.receive(buffer),
+                .std => self.socket.read(buffer),
+                .experimental => @compileError("backend not yet supported, std.x.net does not support hostname resolution"),
+            },
             .https => self.context.read(buffer),
         };
     }
@@ -156,10 +171,11 @@ pub const Connection = struct {
     pub const Writer = std.io.Writer(*Connection, WriteError, write);
     pub fn write(self: *Connection, buffer: []const u8) WriteError!usize {
         return switch (self.protocol) {
-            .http => if (comptime std_net_hack)
-                self.socket.write(buffer)
-            else
-                self.socket.send(buffer),
+            .http => switch (backend) {
+                .network => self.socket.send(buffer),
+                .std => self.socket.write(buffer),
+                .experimental => @compileError("backend not yet supported, std.x.net does not support hostname resolution"),
+            },
             .https => self.context.write(buffer),
         };
     }
