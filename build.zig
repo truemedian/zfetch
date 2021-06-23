@@ -2,7 +2,7 @@ const std = @import("std");
 
 const Builder = std.build.Builder;
 
-const use_submodules = true;
+const use_submodules = false;
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
