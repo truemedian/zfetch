@@ -2,7 +2,7 @@ const std = @import("std");
 
 const Builder = std.build.Builder;
 
-const use_submodules = false;
+const packages = @import("deps.zig");
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
@@ -10,19 +10,16 @@ pub fn build(b: *Builder) void {
     const lib_tests = b.addTest("src/main.zig");
     lib_tests.setBuildMode(mode);
 
-    if (use_submodules) {
+    if (@hasDecl(packages, "use_submodules")) { // submodules
         const package = getPackage(b, ".");
 
         for (package.dependencies.?) |dep| {
             lib_tests.addPackage(dep);
         }
-    } else {
-        const packages = @import("deps.zig");
-        if (@hasDecl(packages, "addAllTo")) { // zigmod
-            packages.addAllTo(lib_tests);
-        } else if (@hasDecl(packages, "pkgs") and @hasDecl(packages.pkgs, "addAllTo")) { // gyro
-            packages.pkgs.addAllTo(lib_tests);
-        }
+    } else if (@hasDecl(packages, "addAllTo")) { // zigmod
+        packages.addAllTo(lib_tests);
+    } else if (@hasDecl(packages, "pkgs") and @hasDecl(packages.pkgs, "addAllTo")) { // gyro
+        packages.pkgs.addAllTo(lib_tests);
     }
 
     const tests = b.step("test", "Run all library tests");
