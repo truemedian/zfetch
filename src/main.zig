@@ -5,6 +5,7 @@ const hzzp = @import("hzzp");
 const request = @import("request.zig");
 const connection = @import("connection.zig");
 
+pub const Header = hzzp.Header;
 pub const Headers = hzzp.Headers;
 
 pub const Request = request.Request;

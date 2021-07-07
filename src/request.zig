@@ -1,8 +1,6 @@
 const std = @import("std");
 
-const ascii = std.ascii;
 const mem = std.mem;
-const fmt = std.fmt;
 
 const hzzp = @import("hzzp");
 const zuri = @import("uri");
@@ -228,7 +226,7 @@ pub const Request = struct {
 
             if (headers != null and headers.?.contains("Authorization")) return error.AuthorizationMismatch;
 
-            var unencoded = try fmt.allocPrint(self.allocator, "{s}:{s}", .{ self.uri.user, self.uri.password });
+            var unencoded = try std.fmt.allocPrint(self.allocator, "{s}:{s}", .{ self.uri.user, self.uri.password });
             defer self.allocator.free(unencoded);
 
             var auth = try self.allocator.alloc(u8, std.base64.standard.Encoder.calcSize(unencoded.len));
