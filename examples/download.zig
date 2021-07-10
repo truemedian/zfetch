@@ -20,7 +20,6 @@ pub fn main() !void {
 
     try req.do(.GET, headers, null);
 
-    const stdout = std.io.getStdOut().writer();
     const file = try std.fs.cwd().createFile("file.txt", .{});
     const writer = file.writer();
 
