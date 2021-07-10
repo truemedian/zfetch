@@ -1,6 +1,6 @@
 pkgs:
   zfetch:
-    version: 0.1.3
+    version: 0.1.4
     license: MIT
     source_url: "https://github.com/truemedian/zfetch"
     tags:
@@ -13,7 +13,12 @@ pkgs:
       src/*.zig
 
 deps:
-  alexnask/iguanaTLS: ^0.0.3
   mattnite/network: ^0.0.3
   mattnite/uri: ^0.0.0
   truemedian/hzzp: ^0.1.3
+  iguanaTLS:
+    src:
+      github:
+        user: alexnask
+        repo: iguanaTLS
+        ref: 0d39a361639ad5469f8e4dcdaea35446bbe54b48
