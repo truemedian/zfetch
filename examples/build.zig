@@ -4,7 +4,7 @@ const Builder = std.build.Builder;
 
 const examples = [_][]const u8{ "get", "post", "download", "evented" };
 
-const submodules = true;
+const packages = @import("deps.zig");
 
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
@@ -16,10 +16,9 @@ pub fn build(b: *Builder) void {
         example.setTarget(target);
         example.install();
 
-        if (comptime submodules) {
+        if (@hasDecl(packages, "use_submodules")) {
             example.addPackage(getPackage(b, ".."));
         } else {
-            const packages = @import("deps.zig");
             if (@hasDecl(packages, "addAllTo")) { // zigmod
                 packages.addAllTo(example);
             } else if (@hasDecl(packages, "pkgs") and @hasDecl(packages.pkgs, "addAllTo")) { // gyro
