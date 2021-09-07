@@ -90,20 +90,20 @@ pub const Connection = struct {
     }
 
     pub fn reconnect(self: *Connection) !void {
-        conn.socket.close();
+        self.socket.close();
 
         if (self.protocol == .https) {
             self.context.close_notify() catch {};
         }
 
-        conn.socket = switch (backend) {
+        self.socket = switch (backend) {
             .network => try network.connectToHost(self.allocator, self.host_dupe, self.port, .tcp),
             .std => try std.net.tcpConnectToHost(self.allocator, self.host_dupe, self.port),
             .experimental => @compileError("backend not yet supported, std.x.net does not support hostname resolution"),
         };
 
         if (self.protocol == .https) {
-            try conn.setupTlsContext(self.trust_chain);
+            try self.setupTlsContext(self.trust_chain);
         }
     }
 
