@@ -6,7 +6,7 @@ description: A HTTP request library for Zig with HTTPS support
 dependencies:
   - src: git https://github.com/truemedian/hzzp
 
-  - src: git https://github.com/alexnask/iguanaTLS
+  - src: git https://github.com/marler8997/iguanaTLS
 
   - src: git https://github.com/MasterQ32/zig-network
 
