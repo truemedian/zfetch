@@ -11,7 +11,7 @@ pub fn build(b: *Builder) void {
     lib_tests.setBuildMode(mode);
 
     if (@hasDecl(packages, "use_submodules")) { // submodules
-        const package = getPackage(b, ".");
+        const package = getPackage(b) catch unreachable;
 
         for (package.dependencies.?) |dep| {
             lib_tests.addPackage(dep);
@@ -26,17 +26,40 @@ pub fn build(b: *Builder) void {
     tests.dependOn(&lib_tests.step);
 }
 
-pub fn getPackage(b: *Builder, comptime prefix: []const u8) std.build.Pkg {
+fn getBuildPrefix() []const u8 {
+    return std.fs.path.dirname(@src().file) orelse ".";
+}
+
+fn getDependency(comptime name: []const u8, comptime root: []const u8) !std.build.Pkg {
+    const path = getBuildPrefix() ++ "/libs/" ++ name ++ "/" ++ root;
+
+    // Make sure that the dependency has been checked out.
+    std.fs.cwd().access(path, .{}) catch |err| switch (err) {
+        error.FileNotFound => {
+            std.log.err("zfetch: dependency '{s}' not checked out", .{name});
+
+            return err;
+        },
+        else => return err,
+    };
+
+    return std.build.Pkg{
+        .name = name,
+        .path = .{ .path = path },
+    };
+}
+
+pub fn getPackage(b: *Builder) !std.build.Pkg {
     var dependencies = b.allocator.alloc(std.build.Pkg, 4) catch unreachable;
 
-    dependencies[0] = .{ .name = "iguanaTLS", .path = .{ .path = prefix ++ "/libs/iguanaTLS/src/main.zig" } };
-    dependencies[1] = .{ .name = "network", .path = .{ .path = prefix ++ "/libs/network/network.zig" } };
-    dependencies[2] = .{ .name = "uri", .path = .{ .path = prefix ++ "/libs/uri/uri.zig" } };
-    dependencies[3] = .{ .name = "hzzp", .path = .{ .path = prefix ++ "/libs/hzzp/src/main.zig" } };
+    dependencies[0] = try getDependency("iguanaTLS", "src/main.zig");
+    dependencies[1] = try getDependency("network", "network.zig");
+    dependencies[2] = try getDependency("uri", "uri.zig");
+    dependencies[3] = try getDependency("hzzp", "src/main.zig");
 
-    return .{
+    return std.build.Pkg{
         .name = "zfetch",
-        .path = .{ .path = prefix ++ "/src/main.zig" },
+        .path = .{ .path = getBuildPrefix() ++ "/src/main.zig" },
         .dependencies = dependencies,
     };
 }
