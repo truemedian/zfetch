@@ -13,7 +13,7 @@ pkgs:
       src/*.zig
 
 deps:
-  mattnite/network: ^0.0.3
+  mattnite/network: ^0.0.4
   mattnite/uri: ^0.0.0
   truemedian/hzzp: ^0.1.7
   iguanaTLS:
