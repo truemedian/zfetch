@@ -1,6 +1,6 @@
 pkgs:
   zfetch:
-    version: 0.1.8
+    version: 0.1.9
     license: MIT
     source_url: "https://github.com/truemedian/zfetch"
     tags:
@@ -21,4 +21,4 @@ deps:
       github:
         user: marler8997
         repo: iguanaTLS
-        ref: c1106fa6ecac1d51e8148cd47a8a4b99bb307af8
+        ref: master
