@@ -3,22 +3,17 @@ pkgs:
     version: 0.1.9
     license: MIT
     source_url: "https://github.com/truemedian/zfetch"
-    tags:
-      http
-
+    tags: http
     root: src/main.zig
     files:
       README.md
       LICENSE
       src/*.zig
-
 deps:
   mattnite/network: ^0.0.5
   mattnite/uri: ^0.0.0
   truemedian/hzzp: ^0.1.7
   iguanaTLS:
-    src:
-      github:
-        user: marler8997
-        repo: iguanaTLS
-        ref: master
+    git:
+      url: "https://github.com/marler8997/iguanaTLS.git"
+      ref: master
