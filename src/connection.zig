@@ -42,7 +42,7 @@ pub const deinit = network.deinit;
 
 /// A wrapper around TCP + TLS and raw TCP streams that provides a connection agnostic interface.
 pub const Connection = struct {
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
     /// The hostname that this connection was initiated with.
     hostname: []const u8,
@@ -63,7 +63,7 @@ pub const Connection = struct {
     trust_chain: ?tls.x509.CertificateChain = null,
 
     /// Form a connection to the requested hostname and port.
-    pub fn connect(allocator: *std.mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol, trust_chain: ?tls.x509.CertificateChain) !Connection {
+    pub fn connect(allocator: std.mem.Allocator, hostname: []const u8, port: ?u16, protocol: Protocol, trust_chain: ?tls.x509.CertificateChain) !Connection {
         const host_dupe = try allocator.dupe(u8, hostname);
         errdefer allocator.free(host_dupe);
 
