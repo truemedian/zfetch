@@ -10,7 +10,7 @@ pub fn main() !void {
     defer zfetch.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = &gpa.allocator;
+    const allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
     var headers = zfetch.Headers.init(allocator);
