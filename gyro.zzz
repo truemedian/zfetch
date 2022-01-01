@@ -10,7 +10,11 @@ pkgs:
       LICENSE
       src/*.zig
 deps:
-  mattnite/network: ^0.0.6
+  network:
+    git:
+      url: "https://github.com/MasterQ32/zig-network.git"
+      ref: master
+      root: network.zig
   mattnite/uri: ^0.0.1
   truemedian/hzzp: ^0.1.8
   iguanaTLS:
