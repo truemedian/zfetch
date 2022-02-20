@@ -15,9 +15,13 @@ deps:
       url: "https://github.com/MasterQ32/zig-network.git"
       ref: master
       root: network.zig
-  mattnite/uri: ^0.0.1
-  truemedian/hzzp: ^0.1.8
+  uri:
+    git:
+      url: "https://github.com/MasterQ32/zig-uri.git"
+      ref: master
+      root: uri.zig
   iguanaTLS:
     git:
-      url: "https://github.com/marler8997/iguanaTLS.git"
+      url: "https://github.com/nektro/iguanaTLS.git"
       ref: master
+  truemedian/hzzp: ^0.1.8
