@@ -171,6 +171,58 @@ pub const Request = struct {
         return req;
     }
 
+    pub fn fromConnection(allocator: std.mem.Allocator, conn: Connection, url: []const u8) !Request {
+        const uri = try zuri.parse(url);
+
+        const protocol: Protocol = proto: {
+            if (uri.scheme) |scheme| {
+                if (mem.eql(u8, scheme, "http")) {
+                    break :proto .http;
+                } else if (mem.eql(u8, scheme, "https")) {
+                    break :proto .https;
+                } else if (mem.eql(u8, scheme, "unix")) {
+                    break :proto .unix;
+                } else {
+                    return error.InvalidScheme;
+                }
+            } else {
+                return error.MissingScheme;
+            }
+        };
+
+        var req = try allocator.create(Request);
+        errdefer allocator.destroy(req);
+
+        req.allocator = allocator;
+        req.socket = conn;
+
+        assert(conn.options.protocol == protocol);
+
+        req.buffer = try allocator.alloc(u8, mem.page_size);
+        errdefer allocator.free(req.buffer);
+
+        req.url = url;
+        req.uri = uri;
+
+        req.buffered_reader = try allocator.create(BufferedReader);
+        errdefer allocator.destroy(req.buffered_reader);
+        req.buffered_reader.* = .{ .unbuffered_reader = req.socket.reader() };
+
+        req.buffered_writer = try allocator.create(BufferedWriter);
+        errdefer allocator.destroy(req.buffered_writer);
+        req.buffered_writer.* = .{ .unbuffered_writer = req.socket.writer() };
+
+        req.client = HttpClient.init(req.buffer, req.buffered_reader.reader(), req.buffered_writer.writer());
+
+        req.headers = hzzp.Headers.init(allocator);
+        req.status = Status{
+            .code = 0,
+            .reason = "",
+        };
+
+        return req;
+    }
+
     pub fn reset(self: *Request, url: []const u8) !void {
         const uri = try zuri.parse(url);
 
