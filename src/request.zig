@@ -6,10 +6,10 @@ const hzzp = @import("hzzp");
 const zuri = @import("uri");
 const tls = @import("iguanaTLS");
 
-const conn = @import("connection.zig");
+const connection = @import("connection.zig");
 
-const Protocol = conn.Protocol;
-const Connection = conn.Connection;
+const Protocol = connection.Protocol;
+const Connection = connection.Connection;
 
 /// All RFC 7231 and RFC 5789 HTTP methods.
 pub const Method = enum {
@@ -340,8 +340,8 @@ pub const Request = struct {
 };
 
 test "makes request" {
-    try conn.init();
-    defer conn.deinit();
+    try connection.init();
+    defer connection.deinit();
 
     var req = try Request.init(std.testing.allocator, "https://httpbin.org/get", null);
     defer req.deinit();
@@ -366,8 +366,8 @@ test "makes request" {
 }
 
 test "does basic auth" {
-    try conn.init();
-    defer conn.deinit();
+    try connection.init();
+    defer connection.deinit();
 
     var req = try Request.init(std.testing.allocator, "https://username:password@httpbin.org/basic-auth/username/password", null);
     defer req.deinit();
@@ -392,8 +392,8 @@ test "does basic auth" {
 }
 
 test "can reset and resend" {
-    try conn.init();
-    defer conn.deinit();
+    try connection.init();
+    defer connection.deinit();
 
     var headers = hzzp.Headers.init(std.testing.allocator);
     defer headers.deinit();
