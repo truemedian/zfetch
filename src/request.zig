@@ -174,29 +174,11 @@ pub const Request = struct {
     pub fn fromConnection(allocator: std.mem.Allocator, conn: Connection, url: []const u8) !Request {
         const uri = try zuri.parse(url);
 
-        const protocol: Protocol = proto: {
-            if (uri.scheme) |scheme| {
-                if (mem.eql(u8, scheme, "http")) {
-                    break :proto .http;
-                } else if (mem.eql(u8, scheme, "https")) {
-                    break :proto .https;
-                } else if (mem.eql(u8, scheme, "unix")) {
-                    break :proto .unix;
-                } else {
-                    return error.InvalidScheme;
-                }
-            } else {
-                return error.MissingScheme;
-            }
-        };
-
         var req = try allocator.create(Request);
         errdefer allocator.destroy(req);
 
         req.allocator = allocator;
         req.socket = conn;
-
-        assert(conn.options.protocol == protocol);
 
         req.buffer = try allocator.alloc(u8, mem.page_size);
         errdefer allocator.free(req.buffer);
@@ -223,34 +205,9 @@ pub const Request = struct {
         return req;
     }
 
+    /// This function does NOT reform the underlying connection. The url MUST reside on the same host and port.
     pub fn reset(self: *Request, url: []const u8) !void {
         const uri = try zuri.parse(url);
-
-        const protocol: Protocol = proto: {
-            if (uri.scheme) |scheme| {
-                if (mem.eql(u8, scheme, "http")) {
-                    break :proto .http;
-                } else if (mem.eql(u8, scheme, "https")) {
-                    break :proto .https;
-                } else if (mem.eql(u8, scheme, "unix")) {
-                    break :proto .unix;
-                } else {
-                    return error.InvalidScheme;
-                }
-            } else {
-                return error.MissingScheme;
-            }
-        };
-
-        if (uri.host == null) return error.MissingHost;
-        if (protocol != self.socket.options.protocol) return error.ProtocolMismatch;
-
-        if (protocol == .unix) {
-            if (!mem.eql(u8, uri.path, self.socket.options.hostname)) return error.PathMismatch;
-        } else {
-            if (!mem.eql(u8, uri.host.?, self.socket.options.hostname)) return error.HostnameMismatch;
-            if (!std.meta.eql(uri.port, self.socket.options.port)) return error.PortMismatch;
-        }
 
         self.url = url;
         self.uri = uri;
