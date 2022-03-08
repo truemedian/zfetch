@@ -8,6 +8,4 @@ dependencies:
 
   - src: git https://github.com/nektro/iguanaTLS
 
-  - src: git https://github.com/MasterQ32/zig-network
-
   - src: git https://github.com/MasterQ32/zig-uri

@@ -10,11 +10,6 @@ pkgs:
       LICENSE
       src/*.zig
 deps:
-  network:
-    git:
-      url: "https://github.com/MasterQ32/zig-network.git"
-      ref: master
-      root: network.zig
   uri:
     git:
       url: "https://github.com/MasterQ32/zig-uri.git"
