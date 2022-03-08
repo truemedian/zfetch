@@ -171,7 +171,7 @@ pub const Request = struct {
         return req;
     }
 
-    pub fn fromConnection(allocator: std.mem.Allocator, conn: Connection, url: []const u8) !Request {
+    pub fn fromConnection(allocator: std.mem.Allocator, conn: Connection, url: []const u8) !*Request {
         const uri = try zuri.parse(url);
 
         var req = try allocator.create(Request);
