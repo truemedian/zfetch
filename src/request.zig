@@ -105,6 +105,8 @@ pub const Request = struct {
                     break :proto .http;
                 } else if (mem.eql(u8, scheme, "https")) {
                     break :proto .https;
+                } else if (mem.eql(u8, scheme, "unix")) {
+                    break :proto .unix;
                 } else {
                     return error.InvalidScheme;
                 }
@@ -116,10 +118,32 @@ pub const Request = struct {
         var req = try allocator.create(Request);
         errdefer allocator.destroy(req);
 
-        if (uri.host == null) return error.MissingHost;
+        var options = Connection.ConnectOptions{
+            .protocol = protocol,
+            .hostname = undefined,
+        };
+
+        switch (protocol) {
+            .unix => {
+                if (uri.host != null) return error.InvalidUri;
+
+                options.hostname = uri.path;
+            },
+            .http, .https => {
+                if (uri.host == null) return error.MissingHost;
+
+                options.hostname = uri.host.?;
+                options.port = uri.port;
+            },
+        }
+
+        if (protocol == .https or trust != null) {
+            options.want_tls = true;
+            options.trust_chain = trust;
+        }
 
         req.allocator = allocator;
-        req.socket = try Connection.connect(allocator, uri.host.?, uri.port, protocol, trust);
+        req.socket = try Connection.connect(allocator, options);
         errdefer req.socket.close();
 
         req.buffer = try allocator.alloc(u8, mem.page_size);
@@ -156,6 +180,8 @@ pub const Request = struct {
                     break :proto .http;
                 } else if (mem.eql(u8, scheme, "https")) {
                     break :proto .https;
+                } else if (mem.eql(u8, scheme, "unix")) {
+                    break :proto .unix;
                 } else {
                     return error.InvalidScheme;
                 }
@@ -165,9 +191,14 @@ pub const Request = struct {
         };
 
         if (uri.host == null) return error.MissingHost;
-        if (protocol != self.socket.protocol) return error.ProtocolMismatch;
-        if (!mem.eql(u8, uri.host.?, self.socket.hostname)) return error.HostnameMismatch;
-        if ((uri.port orelse protocol.defaultPort()) != self.socket.port) return error.PortMismatch;
+        if (protocol != self.socket.options.protocol) return error.ProtocolMismatch;
+
+        if (protocol == .unix) {
+            if (!mem.eql(u8, uri.path, self.socket.options.hostname)) return error.PathMismatch;
+        } else {
+            if (!mem.eql(u8, uri.host.?, self.socket.options.hostname)) return error.HostnameMismatch;
+            if (!std.meta.eql(uri.port, self.socket.options.port)) return error.PortMismatch;
+        }
 
         self.url = url;
         self.uri = uri;

@@ -1,9 +1,6 @@
 [submodule "libs/iguanaTLS"]
 	path = libs/iguanaTLS
 	url = https://github.com/marler8997/iguanaTLS
-[submodule "libs/network"]
-	path = libs/network
-	url = https://github.com/MasterQ32/zig-network
 [submodule "libs/uri"]
 	path = libs/uri
 	url = https://github.com/MasterQ32/zig-uri
