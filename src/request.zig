@@ -248,7 +248,18 @@ pub const Request = struct {
         try self.client.writeStatusLineParts(method.name(), self.uri.path, self.uri.query, self.uri.fragment);
 
         if (headers == null or !headers.?.contains("Host")) {
-            try self.client.writeHeaderValue("Host", self.uri.host.?);
+            if (self.uri.host) |host| {
+                if (self.uri.port) |port| {
+                    var auth = try std.fmt.allocPrint(self.allocator, "{s}:{d}", .{ host, port });
+                    defer self.allocator.free(auth);
+
+                    try self.client.writeHeaderValue("Host", auth);
+                } else {
+                    try self.client.writeHeaderValue("Host", host);
+                }
+            } else {
+                try self.client.writeHeaderValue("Host", "");
+            }
         }
 
         if (self.uri.user != null or self.uri.password != null) {
