@@ -75,6 +75,9 @@ pub const Connection = struct {
             .unix => {
                 assert(options.port == null);
 
+                // windows doesn't support unix sockets before build 17063.
+                if (!std.net.has_unix_sockets) return error.UnixSocketsUnsupported;
+
                 return try std.net.connectUnixSocket(options.hostname);
             },
         }

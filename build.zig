@@ -6,9 +6,11 @@ const packages = @import("deps.zig");
 
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
+    const target = b.standardTargetOptions(.{});
 
     const lib_tests = b.addTest("src/main.zig");
     lib_tests.setBuildMode(mode);
+    lib_tests.setTarget(target);
 
     if (@hasDecl(packages, "use_submodules")) { // submodules
         const package = getPackage(b) catch unreachable;
