@@ -65,6 +65,9 @@ pub const Connection = struct {
     /// The TLS context if the connection is using TLS.
     secure_context: ?TlsClient = null,
 
+    /// Workaround for std.crypto.rand not working in evented mode
+    prng: std.rand.Isaac64 = undefined,
+
     fn rawConnect(allocator: std.mem.Allocator, options: ConnectOptions) !Socket {
         switch (options.protocol) {
             .http, .https => {
@@ -142,6 +145,11 @@ pub const Connection = struct {
     }
 
     fn setupTlsContext(self: *Connection) !void {
+        // Workaround for std.crypto.rand not working in evented mode and std.rand.DefaultCsprng miscompiling the vectorized permute
+        var seed: [8]u8 = undefined;
+        try std.os.getrandom(&seed);
+        self.prng = std.rand.Isaac64.init(std.mem.bytesAsValue(u64, &seed).*);
+
         if (self.options.trust_chain) |trust_chain| {
             self.secure_context = try tls.client_connect(.{
                 .reader = self.socket.reader(),
@@ -151,6 +159,9 @@ pub const Connection = struct {
                 .temp_allocator = self.allocator,
                 .ciphersuites = tls.ciphersuites.all,
                 .protocols = &[_][]const u8{"http/1.1"},
+
+                // Workaround for std.crypto.rand not working in evented mode
+                .rand = self.prng.random(),
             }, self.options.hostname);
         } else {
             self.secure_context = try tls.client_connect(.{
@@ -160,6 +171,9 @@ pub const Connection = struct {
                 .temp_allocator = self.allocator,
                 .ciphersuites = tls.ciphersuites.all,
                 .protocols = &[_][]const u8{"http/1.1"},
+
+                // Workaround for std.crypto.rand not working in evented mode
+                .rand = self.prng.random(),
             }, self.options.hostname);
         }
     }
