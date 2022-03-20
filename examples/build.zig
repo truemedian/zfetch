@@ -65,12 +65,12 @@ pub fn getPackage(b: *Builder) !std.build.Pkg {
     var dependencies = b.allocator.alloc(std.build.Pkg, 3) catch unreachable;
 
     dependencies[0] = try getDependency("iguanaTLS", "src/main.zig");
-    dependencies[2] = try getDependency("uri", "uri.zig");
-    dependencies[3] = try getDependency("hzzp", "src/main.zig");
+    dependencies[1] = try getDependency("uri", "uri.zig");
+    dependencies[2] = try getDependency("hzzp", "src/main.zig");
 
     return std.build.Pkg{
         .name = "zfetch",
-        .path = .{ .path = getBuildPrefix() ++ "/src/main.zig" },
+        .path = .{ .path = getBuildPrefix() ++ "/../src/main.zig" },
         .dependencies = dependencies,
     };
 }
