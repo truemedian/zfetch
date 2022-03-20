@@ -44,3 +44,7 @@ jobs:
       - name: Example (Download)
         working-directory: examples
         run: gyro build run-download
+
+      - name: Example (Evented)
+        working-directory: examples
+        run: gyro build run-evented
