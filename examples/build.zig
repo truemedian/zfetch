@@ -57,7 +57,7 @@ fn getDependency(comptime name: []const u8, comptime root: []const u8) !std.buil
 
     return std.build.Pkg{
         .name = name,
-        .path = .{ .path = path },
+        .source = .{ .path = path },
     };
 }
 
@@ -70,7 +70,7 @@ pub fn getPackage(b: *Builder) !std.build.Pkg {
 
     return std.build.Pkg{
         .name = "zfetch",
-        .path = .{ .path = getBuildPrefix() ++ "/../src/main.zig" },
+        .source = .{ .path = getBuildPrefix() ++ "/../src/main.zig" },
         .dependencies = dependencies,
     };
 }
