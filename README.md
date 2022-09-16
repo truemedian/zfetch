@@ -1,3 +1,9 @@
+## Notice
+
+This package is deprecated and archived for the foreseeable future due to the zig master being an ever changing target
+and my lack of time to address and fix things that have changed. Those looking for a similar experience should look
+at [haze/zelda](https://github.com/haze/zelda).
+
 # zfetch
 
 [![Linux Workflow Status](https://img.shields.io/github/workflow/status/truemedian/zfetch/Linux?label=Linux&style=for-the-badge)](https://github.com/truemedian/zfetch/actions/workflows/linux.yml)
